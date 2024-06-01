@@ -3,36 +3,8 @@ import path from "path";
 import cors from "cors";
 import simpleGit from "simple-git";
 import { generateId, getAllFiles } from "./helpers";
-import AWS from 'aws-sdk';
-import {S3Client, PutObjectCommand} from '@aws-sdk/client-s3'
+import { uploadFile } from "./aws";
 
-
-// load .env variables
-import dotenv from "dotenv";
-dotenv.config({path: path.resolve(__dirname, '../.env')});
-
-// console.log();
-
-const region = process.env.BUCKET_REGION
-const accessKeyId = process.env.S3_ACCESS_KEY
-const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY
-const bucketName = process.env.BUCKET_NAME
-
-
-const s3 = new S3Client({
-  credentials: {
-    accessKeyId: accessKeyId!,
-    secretAccessKey: secretAccessKey!,
-  },
-  region:region
-});
-
-// ( async () => await 
-// s3.putObject({
-//   Body: "hello",
-//   Bucket: "vercel-clone-konan",
-//   Key: "myfile.txt"
-// }))
 
 const app = express()
 app.use(cors())
@@ -46,7 +18,11 @@ app.post('/deploy', async (req, res) => {
 
   const files = getAllFiles(path.join(__dirname, `./output/${id}`));
   // push to s3 bucket
+  console.log(files)
   
+  files.forEach(async file => {
+      await uploadFile(file.slice(__dirname.length + 1), file)
+  })
   res.json({ id: id })
 })
 
