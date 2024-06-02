@@ -4,7 +4,10 @@ import cors from "cors";
 import simpleGit from "simple-git";
 import { generateId, getAllFiles } from "./helpers";
 import { uploadFile } from "./aws";
-
+// redis or aws sqs for queuing
+import {createClient} from "redis"
+const publisher = createClient();
+publisher.connect();
 
 const app = express()
 app.use(cors())
@@ -23,6 +26,8 @@ app.post('/deploy', async (req, res) => {
   files.forEach(async file => {
       await uploadFile(file.slice(__dirname.length + 1), file)
   })
+  // push to redis queue 
+  publisher.lPush("build-queue", id)
   res.json({ id: id })
 })
 
