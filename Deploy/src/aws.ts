@@ -4,19 +4,16 @@ import path from "path";
 import dotenv from "dotenv";
 
 
-dotenv.config({path: path.resolve(__dirname, '../.env')});
+dotenv.config({path: path.resolve('../.env')});
 
 const s3 = new S3({
     accessKeyId: process.env.S3_ACCESS_KEY,
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
 })
-
-console.log(process.env.S3_ACCESS_KEY)
-
 // output/asdasd
 export async function downloadS3Folder(prefix: string) {
     const allFiles = await s3.listObjectsV2({
-        Bucket: "vercel",
+        Bucket: process.env.BUCKET_NAME!,
         Prefix: prefix
     }).promise();
     
