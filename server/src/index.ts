@@ -13,13 +13,16 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+console.log(path.resolve(__dirname, `../dist/output`))
+
 app.post('/upload', async (req, res) => {
   const repoUrl = req.body.repoUrl;
   const id = generateId()
   console.log(id)
-  await simpleGit().clone(repoUrl, path.join(__dirname, `./output/${id}`));
+  await simpleGit().clone(repoUrl, path.resolve(__dirname, `../dist/output/${id}`));
 
-  const files = getAllFiles(path.join(__dirname, `./output/${id}`));
+
+  const files = getAllFiles(path.join(__dirname, `../dist/output/${id}`));
   // push to s3 bucket
   console.log(files)
   
