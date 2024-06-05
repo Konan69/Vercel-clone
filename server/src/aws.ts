@@ -2,7 +2,7 @@ import {S3} from 'aws-sdk';
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs"; 
-dotenv.config({path: path.resolve(__dirname, '../.env')});
+dotenv.config({path: path.resolve('../.env')});
 
 
 const region = process.env.BUCKET_REGION
@@ -12,8 +12,8 @@ const bucketName = process.env.BUCKET_NAME
 
 
 const s3 = new S3({
-  accessKeyId: accessKeyId!,
-  secretAccessKey: secretAccessKey!,
+  accessKeyId: accessKeyId,
+  secretAccessKey: secretAccessKey,
   region:region
 });
 

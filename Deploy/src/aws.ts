@@ -16,7 +16,7 @@ export async function downloadS3Folder(prefix: string) {
         Bucket: process.env.BUCKET_NAME!,
         Prefix: prefix
     }).promise();
-    
+    console.log("trigereed download function")
     // 
     const allPromises = allFiles.Contents?.map(async ({Key}) => {
         return new Promise(async (resolve) => {
@@ -31,7 +31,7 @@ export async function downloadS3Folder(prefix: string) {
                 fs.mkdirSync(dirName, { recursive: true });
             }
             s3.getObject({
-                Bucket: "vercel",
+                Bucket: process.env.BUCKET_NAME!,
                 Key
             }).createReadStream().pipe(outputFile).on("finish", () => {
                 resolve("");
@@ -41,4 +41,5 @@ export async function downloadS3Folder(prefix: string) {
     console.log("awaiting");
 
     await Promise.all(allPromises?.filter(x => x !== undefined));
+
 }

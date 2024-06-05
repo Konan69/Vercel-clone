@@ -12,7 +12,11 @@ async function main() {
             'build-queue',
             0
           );//@ts-ignore
-				console.log(res.element)
+          const id = res.element
+          //@ts-ignore
+		 console.log(res.element)
+        await downloadS3Folder(`output/${id}`)
+        console.log("all files downloaded succesfully");
     }
 }
 main();
