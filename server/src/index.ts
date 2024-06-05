@@ -13,7 +13,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-app.post('/deploy', async (req, res) => {
+app.post('/upload', async (req, res) => {
   const repoUrl = req.body.repoUrl;
   const id = generateId()
   console.log(id)
