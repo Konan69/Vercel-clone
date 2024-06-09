@@ -8,7 +8,7 @@ import { uploadFile } from "./aws";
 import {createClient} from "redis"
 const publisher = createClient();
 publisher.connect();
-
+const hello = "world"
 const app = express()
 app.use(cors())
 app.use(express.json())
