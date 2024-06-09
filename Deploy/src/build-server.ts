@@ -16,7 +16,7 @@ async function main() {
           const id = res.element
           //@ts-ignore
 		 console.log(res.element)
-        await downloadS3Folder(`output/${id}`)
+        await downloadS3Folder(`/output/${id}`)
         await buildProject(id)
         console.log("all files downloaded succesfully");
     }

@@ -13,7 +13,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-console.log(path.resolve(__dirname, `../dist/output`))
+console.log(path.join(__dirname, `../dist/output/`))
+
 
 app.post('/upload', async (req, res) => {
   const repoUrl = req.body.repoUrl;
@@ -24,9 +25,9 @@ app.post('/upload', async (req, res) => {
 
   const files = getAllFiles(path.join(__dirname, `../dist/output/${id}`));
   // push to s3 bucket
-  console.log(files)
   
   files.forEach(async file => {
+    console.log(file.slice(__dirname.length + 1))
       await uploadFile(file.slice(__dirname.length + 1), file)
   })
   // push to redis queue 
