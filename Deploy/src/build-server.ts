@@ -18,6 +18,7 @@ async function main() {
 		 console.log(res.element)
         await downloadS3Folder(`/output/${id}`)
         await buildProject(id)
+        // await copyFinaldist()
         console.log("all files downloaded succesfully");
     }
 }
