@@ -30,7 +30,12 @@ app.post('/upload', async (req, res) => {
   })
   // push to redis queue 
   publisher.lPush("build-queue", id)
+  //store  status
+  publisher.hSet('status', id, "uploaded")
   res.json({ id: id })
+
+  
+
 })
 
 
