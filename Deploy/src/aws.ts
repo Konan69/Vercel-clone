@@ -64,19 +64,21 @@ export async function downloadS3Folder(prefix: string) {
     }
 }
 // add root
-export function copyFinalDist(id: string) {
-    const folderPath = path.join(__dirname, `output/${id}/dist`);
+export async function copyFinalDist(id: string) {
+    const folderPath = path.join(__dirname, `uploads/${id}/Client/dist`);
     const allFiles = getAllFiles(folderPath);
-    allFiles.forEach(file => {
-        uploadFile(`dist/${id}/` + file.slice(folderPath.length + 1), file);
-    })
+    const uploadPromises = allFiles.map(file =>
+        uploadFile(`dist/${id}/` + file.slice(folderPath.length + 1), file)
+    );
+    await Promise.all(uploadPromises);
+    console.log("All files uploaded");
 }
-
 
 
  const getAllFiles = (folderPath: string) => {
     let response: string[] = [];
-    const allFilesAndFolders = fs.readdirSync(folderPath);allFilesAndFolders.forEach(file => {
+    const allFilesAndFolders = fs.readdirSync(folderPath);
+    allFilesAndFolders.forEach(file => {
         const fullFilePath = path.join(folderPath, file);
         if (fs.statSync(fullFilePath).isDirectory()) {
             response = response.concat(getAllFiles(fullFilePath))

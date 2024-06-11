@@ -4,6 +4,6 @@
   "ignore": [
     "node_modules",
     "dist",
-    "src/output"],
+    "src/uploads"],
   "exec": "npx ts-node src/build-server.ts"
 }
