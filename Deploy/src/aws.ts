@@ -104,7 +104,7 @@ export const getAllFiles = (folderPath: string) => {
 };
 
 export const uploadFilev3 = async (fileName: string, localFilePath: string) => {
-  const fileContent = fs.readFileSync(localFilePath);
+  const fileContent = fs.createReadStream(localFilePath);
   const response = new PutObjectCommand({
     Body: fileContent,
     Bucket: process.env.BUCKET_NAME!,
@@ -114,6 +114,7 @@ export const uploadFilev3 = async (fileName: string, localFilePath: string) => {
   });
   console.log(response);
   await s3Client.send(response);
+  console.log("done!");
 };
 
 export const uploadFile = async (fileName: string, localFilePath: string) => {

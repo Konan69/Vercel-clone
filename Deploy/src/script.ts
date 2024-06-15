@@ -7,10 +7,11 @@ import { getAllFiles, uploadFile, uploadFilev3 } from "./aws";
 dotenv.config({ path: path.resolve("../.env") });
 
 const PROJECT_ID = process.env.PROJECT_ID!;
+const ROOTDIR = process.env.ROOTDIR!;
 
-async function init(id: string, root: string | null = "") {
+export async function init(ROOTDIR: string = "") {
   console.log("executing script.js");
-  const outDirPath = path.join(__dirname, `uploads/${id}`);
+  const outDirPath = path.join(__dirname, `uploads/${ROOTDIR}`);
 
   const p = exec(`cd ${outDirPath} && npm install && npm run build`);
   p.stdout?.on("data", (data) => {
@@ -22,17 +23,17 @@ async function init(id: string, root: string | null = "") {
   p.on("close", async function () {
     console.log("build complete");
 
-    const distFolderPath = path.join(
-      __dirname,
-      `uploads/${id}/${root}`,
-      "dist",
-    );
+    const distFolderPath = path.join(__dirname, `uploads`, "dist");
     const distFolderContents = getAllFiles(distFolderPath);
 
     const uploadPromises = distFolderContents.map(async (file) => {
       const filePath = path.join(distFolderPath, file);
-      // if (fs.lstatSync(filePath).isDirectory()) continue;
-      // uploadFilev3();
+      if (fs.lstatSync(filePath).isDirectory()) return;
+      console.log("uploading", filePath);
+      uploadFilev3(`__outputs/${PROJECT_ID}/${file}`, filePath);
     });
+    await Promise.all(uploadPromises);
   });
 }
+
+init(ROOTDIR);

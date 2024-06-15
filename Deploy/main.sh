@@ -2,6 +2,6 @@
 
 export GIT_REPO_URL="$GIT_REPO_URL"
 
-git clone "$GIT_REPO_URL" /home/app/uploads
+git clone "$GIT_REPO_URL" /usr/app/uploads
 
-exec node script.js
+exec node /usr/app/dist/script.js
