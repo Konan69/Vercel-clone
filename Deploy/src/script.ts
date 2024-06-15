@@ -11,7 +11,7 @@ const ROOTDIR = process.env.ROOTDIR!;
 
 export async function init(ROOTDIR: string = "") {
   console.log("executing script.js");
-  const outDirPath = path.join(__dirname, `uploads/${ROOTDIR}`);
+  const outDirPath = path.join(__dirname, `../uploads/${ROOTDIR}`);
 
   const p = exec(`cd ${outDirPath} && npm install && npm run build`);
   p.stdout?.on("data", (data) => {
@@ -23,14 +23,18 @@ export async function init(ROOTDIR: string = "") {
   p.on("close", async function () {
     console.log("build complete");
 
-    const distFolderPath = path.join(__dirname, `uploads`, "dist");
+    const distFolderPath = path.join(
+      __dirname,
+      `../uploads/${ROOTDIR}`,
+      "dist",
+    );
     const distFolderContents = getAllFiles(distFolderPath);
 
     const uploadPromises = distFolderContents.map(async (file) => {
       const filePath = path.join(distFolderPath, file);
       if (fs.lstatSync(filePath).isDirectory()) return;
       console.log("uploading", filePath);
-      uploadFilev3(`__outputs/${PROJECT_ID}/${file}`, filePath);
+      uploadFilev3(`__uploads/${PROJECT_ID}/${file}`, filePath);
     });
     await Promise.all(uploadPromises);
   });

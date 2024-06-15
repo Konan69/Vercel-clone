@@ -33,5 +33,6 @@ RUN npm install
 
 
 RUN chmod +x /usr/app/main.sh
+RUN chmod +x /usr/app/dist/script.js
 
 ENTRYPOINT ["/usr/app/main.sh"]
