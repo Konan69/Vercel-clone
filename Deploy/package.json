@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rimraf ./dist && tsc",
-    "start": "npm run build &&node build-server.js",
-    "dev": "nodemon build-server.ts"
+    "start": "npm run build && node build-server.js",
+    "dev": "nodemon"
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,8 @@
 FROM node:20-alpine as development
 
+# Install bash and other necessary utilities
+RUN apk update && \
+    apk add --no-cache bash git
 WORKDIR /usr/app
 
 COPY package*.json .
@@ -7,9 +10,14 @@ COPY package*.json .
 RUN npm install
 
 COPY . .
+COPY test.sh /usr/app/test.sh
 
 RUN npm run build
+RUN chmod +x /usr/app/test.sh
+RUN chmod +x /usr/app/src/script.ts
 
+
+##PRODUCTION
 FROM ubuntu:focal as production
 
 ARG NODE_ENV=production
@@ -29,7 +37,7 @@ COPY --from=development /usr/app/dist ./dist
 COPY main.sh /usr/app/main.sh
 COPY package*.json .
 
-RUN npm install
+RUN npm ci --only=production
 
 
 RUN chmod +x /usr/app/main.sh

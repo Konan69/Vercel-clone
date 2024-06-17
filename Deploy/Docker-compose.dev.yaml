@@ -1,0 +1,13 @@
+version: "3.7"
+
+services:
+  build-server:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./:/usr/app
+      - /usr/app/node_modules
+    env_file:
+      - .env
+    command: ["bash", "/usr/app/test.sh"]

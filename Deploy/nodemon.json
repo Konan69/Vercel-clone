@@ -1,9 +1,6 @@
 {
-  "watch": ["src" ],
+  "watch": ["src"],
   "ext": "ts",
-  "ignore": [
-    "node_modules",
-    "dist",
-    "src/uploads"],
-  "exec": "npx ts-node src/build-server.ts"
+  "ignore": ["node_modules", "dist", "src/uploads"],
+  "exec": "npx ts-node src/script.ts"
 }

@@ -4,7 +4,7 @@ import path from "path";
 import dotenv from "dotenv";
 import mime from "mime-types";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-dotenv.config({ path: path.resolve("../.env") });
+dotenv.config();
 
 const s3 = new S3({
   accessKeyId: process.env.S3_ACCESS_KEY,
