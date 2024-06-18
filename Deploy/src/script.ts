@@ -43,11 +43,15 @@ export async function init(ROOTDIR: string = "") {
     );
     const distFolderContents = getAllFiles(distFolderPath);
 
+    // console.log("path is " + distFolderPath);
+    // console.log("distfoldercontents " + distFolderContents);
+
     const uploadPromises = distFolderContents.map(async (file) => {
-      const filePath = path.join(distFolderPath, file);
-      if (fs.lstatSync(filePath).isDirectory()) return;
-      console.log("uploading", filePath);
-      uploadFilev3(`__uploads/${PROJECT_ID}/${file}`, filePath);
+      console.log("uploading", file);
+      uploadFilev3(
+        `dist/${PROJECT_ID}/` + file.slice(distFolderPath.length + 1),
+        file,
+      );
     });
     await Promise.all(uploadPromises);
   });
