@@ -20,8 +20,8 @@ RUN chmod +x /usr/app/src/script.ts
 ##PRODUCTION
 FROM ubuntu:focal as production
 
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+# ARG NODE_ENV=production
+# ENV NODE_ENV=${NODE_ENV}
 
 RUN apt-get update
 RUN apt-get install -y curl
@@ -37,7 +37,7 @@ COPY --from=development /usr/app/dist ./dist
 COPY main.sh /usr/app/main.sh
 COPY package*.json .
 
-RUN npm ci 
+RUN npm install
 
 
 RUN chmod +x /usr/app/main.sh
