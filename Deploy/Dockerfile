@@ -37,7 +37,7 @@ COPY --from=development /usr/app/dist ./dist
 COPY main.sh /usr/app/main.sh
 COPY package*.json .
 
-RUN npm ci --only=production
+RUN npm ci 
 
 
 RUN chmod +x /usr/app/main.sh

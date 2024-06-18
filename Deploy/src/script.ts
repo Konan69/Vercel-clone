@@ -27,6 +27,7 @@ export async function init(ROOTDIR: string = "") {
   const outDirPath = path.join(__dirname, `../uploads/${ROOTDIR}`);
 
   const p = exec(`cd ${outDirPath} && npm install && npm run build`);
+  console.log(outDirPath);
   p.stdout?.on("data", (data) => {
     console.log(`stdout: ${data}`);
   });
