@@ -104,13 +104,13 @@ export const getAllFiles = (folderPath: string) => {
 };
 
 export const uploadFilev3 = async (fileName: string, localFilePath: string) => {
-  const fileContent = fs.createReadStream(localFilePath);
+  const fileContent = fs.readFileSync(localFilePath);
+  console.log(fileContent);
   const response = new PutObjectCommand({
     Body: fileContent,
     Bucket: process.env.BUCKET_NAME!,
-    Key: fileName,
-    ContentType:
-      mime.lookup(fileContent.toString()) || "application/octet-stream",
+    Key: fileName, //@ts-ignore
+    ContentType: mime.lookup(fileName),
   });
   console.log(response);
   await s3Client.send(response);
