@@ -22,8 +22,8 @@ export function buildProject(id: string, root: string | null = "") {
   });
 }
 
-export function mime(filePath: string) {
-  filePath.endsWith(".html")
+export function mimes(filePath: string) {
+  return filePath.endsWith(".html")
     ? "text/html"
     : filePath.endsWith(".css")
       ? "text/css"

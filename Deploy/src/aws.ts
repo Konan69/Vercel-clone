@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import mime from "mime-types";
+import { mimes } from "./util";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 dotenv.config();
 
@@ -104,13 +105,12 @@ export const getAllFiles = (folderPath: string) => {
 };
 
 export const uploadFilev3 = async (fileName: string, localFilePath: string) => {
-  const fileContent = fs.readFileSync(localFilePath);
-  console.log(fileContent);
+  const fileContent = fs.createReadStream(localFilePath);
   const response = new PutObjectCommand({
     Body: fileContent,
     Bucket: process.env.BUCKET_NAME!,
-    Key: fileName, //@ts-ignore
-    ContentType: mime.lookup(fileName),
+    Key: fileName,
+    ContentType: mimes(fileName),
   });
   console.log(response);
   await s3Client.send(response);

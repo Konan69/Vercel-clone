@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import { getAllFiles, uploadFilev3 } from "./aws";
+
 dotenv.config();
 
 const GIT_URL = process.env.GIT_REPO_URL;
@@ -10,18 +11,6 @@ const PROJECT_ID = process.env.PROJECT_ID;
 const ROOTDIR = process.env.ROOTDIR;
 
 export async function init(ROOTDIR: string = "") {
-  // console.log("copying");
-  // const c = exec(`git clone ${GIT_URL} /usr/app/uploads`);
-  // c.stdout?.on("data", (data) => {
-  //   console.log(`stdout: ${data}`);
-  // });
-  // c.stderr?.on("data", (data) => {
-  //   console.log(`stderr: ${data}`);
-  // });
-  // c.on("close", async function () {
-  //   console.log("build complete");
-  // });
-
   console.log("executing script.js");
 
   const outDirPath = path.join(__dirname, `../uploads/${ROOTDIR}`);
@@ -43,9 +32,6 @@ export async function init(ROOTDIR: string = "") {
       "dist",
     );
     const distFolderContents = getAllFiles(distFolderPath);
-
-    // console.log("path is " + distFolderPath);
-    // console.log("distfoldercontents " + distFolderContents);
 
     const uploadPromises = distFolderContents.map(async (file) => {
       console.log("uploading", file);

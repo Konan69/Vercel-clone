@@ -22,7 +22,7 @@ async function main() {
     await downloadS3Folder(`uploads/${id}`);
     await buildProject(id, "Client");
     // await init();
-    // await copyFinalDist(id)
+    await copyFinalDist(id);
     publisher.hSet("status", id, "deployed");
   }
 }
