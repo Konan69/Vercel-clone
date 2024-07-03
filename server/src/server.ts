@@ -2,6 +2,8 @@ import express from "express";
 import path from "path";
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
 import { generateSlug } from "random-word-slugs";
+import { Server } from "socket.io";
+import Redis from "ioredis";
 import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve("../.env") });
@@ -9,6 +11,8 @@ dotenv.config({ path: path.resolve("../.env") });
 const region = process.env.BUCKET_REGION!;
 const accessKeyId = process.env.S3_ACCESS_KEY!;
 const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
+const REDIS_KEY = process.env.REDIS_KEY;
+
 const bucketName = process.env.BUCKET_NAME;
 
 const ecsClient = new ECSClient({
@@ -23,6 +27,10 @@ const config = {
   CLUSTER: "arn:aws:ecs:eu-north-1:805866672805:cluster/builder-cluster",
   TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:1",
 };
+
+const subscriber = new Redis(REDIS_KEY!);
+
+const io = new Server({ cors: { origin: "*" } });
 
 const app = express();
 app.use(express.json());

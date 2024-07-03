@@ -7,7 +7,6 @@ import { getAllFiles, uploadFilev3 } from "./aws";
 dotenv.config();
 
 const REDIS_KEY = process.env.REDIS_KEY;
-const GIT_URL = process.env.GIT_REPO_URL;
 const PROJECT_ID = process.env.PROJECT_ID;
 const ROOTDIR = process.env.ROOTDIR;
 
