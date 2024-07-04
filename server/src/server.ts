@@ -51,8 +51,8 @@ io.listen(9001);
 
 // ROUTE
 app.post("/project", async (req, res) => {
-  const { gitURL, rootDir } = req.body;
-  const projectSlug = generateSlug();
+  const { gitURL, slug, rootDir } = req.body;
+  const projectSlug = slug ? slug : generateSlug();
 
   // Spin the container
   const command = new RunTaskCommand({
