@@ -1,5 +1,4 @@
 import { exec, spawn } from "child_process";
-import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 import Redis from "ioredis";

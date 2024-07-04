@@ -8,13 +8,17 @@ import dotenv from "dotenv";
 
 dotenv.config({ path: path.resolve("../.env") });
 
+const app = express();
+app.use(express.json());
+
+//ENViRONMENT VARIABLES
 const region = process.env.BUCKET_REGION!;
 const accessKeyId = process.env.S3_ACCESS_KEY!;
 const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
 const REDIS_KEY = process.env.REDIS_KEY;
-
 const bucketName = process.env.BUCKET_NAME;
 
+// CONFIGS
 const ecsClient = new ECSClient({
   region,
   credentials: {
@@ -32,9 +36,15 @@ const subscriber = new Redis(REDIS_KEY!);
 
 const io = new Server({ cors: { origin: "*" } });
 
-const app = express();
-app.use(express.json());
+io.on("connection", (socket) => {
+  socket.on("subscribe", (channel) => {
+    socket.join(channel);
+    socket.emit("message", `joined ${channel}`);
+  });
+});
+io.listen(9001);
 
+// ROUTE
 app.post("/project", async (req, res) => {
   const { gitURL, rootDir } = req.body;
   const projectSlug = generateSlug();
@@ -86,5 +96,9 @@ app.post("/project", async (req, res) => {
     data: { projectSlug, url: `http://${projectSlug}.localhost:8000 ` },
   });
 });
+
+const initRedisSubscribe = async () => {
+  subscriber.psubscribe("logs");
+};
 
 app.listen(9000, () => console.log("running on port 9000"));
