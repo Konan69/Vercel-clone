@@ -37,10 +37,15 @@ const subscriber = new Redis(REDIS_KEY!);
 const io = new Server({ cors: { origin: "*" } });
 
 io.on("connection", (socket) => {
+  console.log("New socket connection");
   socket.on("subscribe", (channel) => {
     socket.join(channel);
     socket.emit("message", `joined ${channel}`);
   });
+});
+
+subscriber.on("error", (error) => {
+  console.error("Redis subscription error:", error);
 });
 io.listen(9001);
 
@@ -99,7 +104,7 @@ app.post("/project", async (req, res) => {
 
 const initRedisSubscribe = async () => {
   console.log("subscribed to logs");
-  subscriber.psubscribe("logs");
+  subscriber.psubscribe("logs:*");
   subscriber.on("pmessage", (pattern, channel, message) => {
     io.to(channel).emit("message", message);
   });
