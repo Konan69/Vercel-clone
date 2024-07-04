@@ -29,7 +29,7 @@ const ecsClient = new ECSClient({
 
 const config = {
   CLUSTER: "arn:aws:ecs:eu-north-1:805866672805:cluster/builder-cluster",
-  TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:1",
+  TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:2",
 };
 
 const subscriber = new Redis(REDIS_KEY!);
@@ -98,7 +98,12 @@ app.post("/project", async (req, res) => {
 });
 
 const initRedisSubscribe = async () => {
+  console.log("subscribed to logs");
   subscriber.psubscribe("logs");
+  subscriber.on("pmessage", (pattern, channel, message) => {
+    io.to(channel).emit("message", message);
+  });
 };
 
+initRedisSubscribe();
 app.listen(9000, () => console.log("running on port 9000"));
