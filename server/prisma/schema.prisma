@@ -22,23 +22,23 @@ enum DeploymentStatus {
 }
 
 model User {
-  id        String    @id @default(cuid())
+  id        String @id @default(cuid())
   firstName String
   lastName  String
-  email     String    @unique
+  email     String @unique
   password  String
-  projects  Project[]
+  // projects  Project[]
 }
 
 model Project {
   id           String       @id @default(cuid())
   name         String
-  gitURl       String       @map("git_url")
+  gitURL       String       @map("git_url")
   subDomain    String       @map("subdomain")
   customDomain String?      @map("custom_domain")
-  user         User         @relation(fields: [userId], references: [id])
+  // user         User         @relation(fields: [userId], references: [id])
   Deployment   Deployment[]
-  userId       String
+  // userId       String
 }
 
 model Deployment {

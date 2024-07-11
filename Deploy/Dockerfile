@@ -36,7 +36,7 @@ WORKDIR /usr/app
 COPY --from=development /usr/app/dist ./dist
 COPY main.sh /usr/app/main.sh
 COPY package*.json .
-
+COPY kafka.pem kafka.pem 
 RUN npm install
 
 
