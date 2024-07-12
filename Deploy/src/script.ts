@@ -17,7 +17,7 @@ const kafka = new Kafka({
   clientId: `docker-build-server${DEPLOYMENT_ID}`,
   brokers: [BROKER!],
   ssl: {
-    ca: [fs.readFileSync(path.join(__dirname, "kafka.pem"), "utf8")],
+    ca: [fs.readFileSync(path.join(__dirname, "../kafka.pem"), "utf8")],
   },
   sasl: {
     mechanism: "plain",
@@ -29,12 +29,19 @@ const kafka = new Kafka({
 const producer = kafka.producer();
 
 const publishLog = async (log: any) => {
-  await producer.send({
-    topic: "container-logs",
-    messages: [
-      { key: "log", value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log }) },
-    ],
-  });
+  try {
+    await producer.send({
+      topic: "container-logs",
+      messages: [
+        {
+          key: "log",
+          value: JSON.stringify({ PROJECT_ID, DEPLOYMENT_ID, log }),
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("Error publishing log:", error);
+  }
 };
 
 async function init(ROOTDIR: string = "") {
@@ -48,8 +55,8 @@ async function init(ROOTDIR: string = "") {
     // Execute build command with a timeout
     await new Promise((resolve, reject) => {
       const p = exec(`cd ${outDirPath} && npm install && npm run build`, {
-        timeout: 600000,
-      }); // 10 minute timeout
+        timeout: 300000,
+      }); // 5 minute timeout
       console.log(outDirPath);
 
       p.stdout?.on("data", async (data) => {
@@ -83,7 +90,7 @@ async function init(ROOTDIR: string = "") {
         `dist/${PROJECT_ID}/` + file.slice(distFolderPath.length + 1),
         file,
       );
-      publishLog(`uploaded ${file}`);
+      await publishLog(`uploaded ${file}`);
     });
 
     await Promise.all(uploadPromises);
@@ -92,10 +99,10 @@ async function init(ROOTDIR: string = "") {
     console.error("An error occurred:", error);
     publishLog(`Error: ${error}`);
   } finally {
-    // Close Redis connection
+    // Close the connection
     await producer.disconnect();
     // Exit the process
-    process.exit(0);
+    setTimeout(() => process.exit(0), 1000);
   }
 }
 

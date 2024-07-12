@@ -2,21 +2,23 @@ import express from "express";
 import path from "path";
 import { Kafka } from "kafkajs";
 import fs from "fs";
-import { PrismaClient, Prisma } from "@prisma/client";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";
 import { ECSClient, RunTaskCommand } from "@aws-sdk/client-ecs";
 import { generateSlug } from "random-word-slugs";
-import { Server } from "socket.io";
 import dotenv from "dotenv";
 import z from "zod";
+import { v4 as uuidv4 } from "uuid";
 import { createClient } from "@clickhouse/client";
 
 //ENViRONMENT VARIABLES
 const clickhouse_host = process.env.CLICKHOUSE_HOST;
-const region = process.env.BUCKET_REGION!;
+const region = process.env.BUCKET_REGION;
 const accessKeyId = process.env.S3_ACCESS_KEY!;
 const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
 const PASSWORD = process.env.KAFKA_PW;
 const BROKER = process.env.KAFKA_URL;
+const CLICKHOUSE_PW = process.env.CLICKHOUSE_PW;
 // CONFIGS
 const ecsClient = new ECSClient({
   region,
@@ -27,23 +29,24 @@ const ecsClient = new ECSClient({
 });
 const config = {
   CLUSTER: "arn:aws:ecs:eu-north-1:805866672805:cluster/builder-cluster",
-  TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:2",
+  TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:3",
 };
 dotenv.config({ path: path.resolve("../.env") });
 
 const prisma = new PrismaClient();
 
 const client = createClient({
-  host: clickhouse_host,
+  url: clickhouse_host,
   database: "default",
   username: "avnadmin",
-  password: process.env.CLICKHOUSE_PW,
+  password: CLICKHOUSE_PW,
 });
 const kafka = new Kafka({
   clientId: `api-server`,
   brokers: [BROKER!],
+  connectionTimeout: 3000,
   ssl: {
-    ca: [fs.readFileSync(path.join(__dirname, "kafka.pem"), "utf8")],
+    ca: [fs.readFileSync(path.join(__dirname, "../kafka.pem"), "utf8")],
   },
   sasl: {
     mechanism: "plain",
@@ -52,27 +55,74 @@ const kafka = new Kafka({
   },
 });
 
+console.log({
+  region,
+  accessKeyId,
+  secretAccessKey,
+  PASSWORD,
+  CLICKHOUSE_PW,
+  BROKER,
+  clickhouse_host,
+});
 const consumer = kafka.consumer({ groupId: "api-server-logs-consumer" });
 
 const app = express();
 app.use(express.json());
+app.use(cors({ origin: "*" }));
 
-const io = new Server({ cors: { origin: "*" } });
+const initkafkaConsumer = async () => {
+  await consumer.connect();
+  await consumer.subscribe({ topics: ["container-logs"], fromBeginning: true });
 
-io.on("connection", (socket) => {
-  console.log("New socket connection");
-  socket.on("subscribe", (channel) => {
-    socket.join(channel);
-    socket.emit("message", `joined ${channel}`);
+  await consumer.run({
+    eachBatch: async ({
+      batch,
+      heartbeat,
+      commitOffsetsIfNecessary,
+      resolveOffset,
+    }) => {
+      const messages = batch.messages;
+      console.log(`Received ${messages.length} messages`);
+      for (const message of messages) {
+        if (!message.value) continue;
+        const stringMessage = message.value.toString()!;
+        const { PROJECT_ID, DEPLOYMENT_ID, log } = JSON.parse(stringMessage);
+        try {
+          const { query_id } = await client.insert({
+            table: "log_events",
+            values: {
+              project_id: uuidv4(),
+              deployment_id: DEPLOYMENT_ID,
+              log: log,
+            },
+            format: "JSONEachRow",
+          });
+          // Fix: Pass an object with the topic and partition
+          resolveOffset(message.offset);
+          // Fix: Pass an object with the topic and partition
+          await commitOffsetsIfNecessary({
+            topics: [
+              {
+                topic: batch.topic,
+                partitions: [
+                  {
+                    partition: batch.partition,
+                    offset: message.offset,
+                  },
+                ],
+              },
+            ],
+          });
+          await heartbeat();
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    },
   });
-});
+};
 
-subscriber.on("error", (error) => {
-  console.error("Redis subscription error:", error);
-});
-io.listen(9001);
-
-// ROUTE
+// ROUTES
 
 app.post("/projects", async (req, res) => {
   const schema = z.object({
@@ -147,6 +197,10 @@ app.post("/deploy", async (req, res) => {
               value: deployment.id,
             },
             {
+              name: "PROJECT_ID",
+              value: projectId,
+            },
+            {
               name: "ROOTDIR",
               value: rootDir,
             },
@@ -159,8 +213,10 @@ app.post("/deploy", async (req, res) => {
 
   return res.json({
     status: deployment.status,
-    data: { project, url: `http://${project.subDomain}.localhost:8000 ` },
+    data: { project, data: { deploymentId: deployment.id } },
   });
 });
+
+initkafkaConsumer();
 
 app.listen(9000, () => console.log("running on port 9000"));
