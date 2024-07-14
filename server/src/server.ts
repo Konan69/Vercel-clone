@@ -124,6 +124,20 @@ const initkafkaConsumer = async () => {
 
 // ROUTES
 
+app.get("/logs/:id", async (req, res) => {
+  const id = req.params.id;
+  const logs = await client.query({
+    query: `SELECT event_id, deployment_id, log, timestamp FROM log_events WHERE deployment_id ={deployment_id:String}`,
+    query_params: {
+      deployment_id: id,
+    },
+    format: "JSONEachRow",
+  });
+  const rawLogs = await logs.json();
+
+  return res.status(200).json({ logs: rawLogs });
+});
+
 app.post("/projects", async (req, res) => {
   const schema = z.object({
     name: z.string(),
