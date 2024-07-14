@@ -123,7 +123,6 @@ const initkafkaConsumer = async () => {
 };
 
 // ROUTES
-
 app.get("/logs/:id", async (req, res) => {
   const id = req.params.id;
   const logs = await client.query({

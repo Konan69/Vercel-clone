@@ -1,9 +1,12 @@
 import express from "express";
 import { S3 } from "aws-sdk";
 import httpProxy from "http-proxy";
+import { PrismaClient } from "@prisma/client";
 
 import dotenv from "dotenv";
 import path from "path";
+
+const prisma = new PrismaClient();
 dotenv.config({ path: path.resolve("../.env") });
 
 const s3 = new S3({
@@ -22,7 +25,16 @@ app.use(async (req, res) => {
 
   const id = host.split(".")[0];
 
-  const resolvesTo = `${S3PATH}/${id}`;
+  const project = await prisma.project.findUnique({
+    where: {
+      id: id,
+    },
+  });
+  if (!project) {
+    return res.status(404).send({ error: "Project not found" });
+  }
+
+  const resolvesTo = `${S3PATH}/${project.id}`;
   const filePath = req.path;
   console.log(id);
   console.log(filePath);
@@ -32,6 +44,7 @@ app.use(async (req, res) => {
     changeOrigin: true,
   });
 });
+
 proxy.on("proxyReq", (proxyReq, req, res) => {
   const url = req.url;
   if (url === "/") proxyReq.path += "index.html";
