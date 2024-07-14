@@ -1,5 +1,4 @@
 import express from "express";
-import { S3 } from "aws-sdk";
 import httpProxy from "http-proxy";
 import { PrismaClient } from "@prisma/client";
 
@@ -8,12 +7,6 @@ import path from "path";
 
 const prisma = new PrismaClient();
 dotenv.config({ path: path.resolve("../.env") });
-
-const s3 = new S3({
-  accessKeyId: process.env.S3_ACCESS_KEY,
-  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-  region: process.env.S3_REGION,
-});
 
 const app = express();
 
@@ -25,9 +18,9 @@ app.use(async (req, res) => {
 
   const id = host.split(".")[0];
 
-  const project = await prisma.project.findUnique({
+  const project = await prisma.project.findFirst({
     where: {
-      id: id,
+      subDomain: id,
     },
   });
   if (!project) {
