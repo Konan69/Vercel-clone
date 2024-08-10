@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@nextui-org/select";
+import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import slugify from "slugify";
 
 interface Repository {
   id: number;
@@ -13,6 +15,7 @@ interface Repository {
   private: boolean;
   updated_at: string;
   default_branch: string;
+  clone_url: string;
   owner: {
     login: string;
   };
@@ -193,8 +196,8 @@ export default function ImportGitRepository() {
     repo.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const importRepository = (repoName: string) => {
-    console.log(`Importing repository: ${repoName}`);
+  const importRepository = (url: string) => {
+    console.log(url);
     // Implement your import logic here
   };
 
@@ -230,11 +233,12 @@ export default function ImportGitRepository() {
                     {new Date(repo.updated_at).toLocaleDateString()}
                   </span>
                 </div>
-                <Button
-                  className="bg-black text-stone-100 hover:bg-gray-800"
-                  onClick={() => importRepository(repo.name)}
-                >
-                  Import
+                <Button className="bg-black text-stone-100 hover:bg-gray-800">
+                  <Link
+                    href={`/${session?.user?.username.toLowerCase()}-projects/deploy?url=${encodeURIComponent(repo.clone_url)}`}
+                  >
+                    Import
+                  </Link>
                 </Button>
               </div>
             ))}
