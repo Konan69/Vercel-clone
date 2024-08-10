@@ -9,15 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nextui-org/dropdown": "^2.1.29",
+    "@nextui-org/system": "^2.2.5",
+    "@nextui-org/theme": "^2.2.9",
     "@radix-ui/react-slot": "^1.0.2",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "framer-motion": "^11.3.24",
     "lucide-react": "^0.323.0",
     "next": "^14.2.5",
     "next-auth": "^4.24.7",
     "react": "^18",
     "react-dom": "^18",
+    "slugify": "^1.6.6",
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7"

@@ -198,11 +198,12 @@ export default function ImportGitRepository() {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full max-w-3xl mx-auto border-gray-500 border-[2px]">
       <CardHeader>
         <CardTitle>Import React/Vite Repository (Excluding Next.js)</CardTitle>
       </CardHeader>
       <CardContent>
+        <DropdownM
         <Input
           type="text"
           placeholder="Search repositories..."
@@ -210,6 +211,7 @@ export default function ImportGitRepository() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="mb-4"
         />
+        <div>name: {session?.user?.username}</div>
         {isLoading ? (
           <div>Loading repositories...</div>
         ) : (

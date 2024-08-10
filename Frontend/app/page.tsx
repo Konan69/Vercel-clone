@@ -11,7 +11,7 @@ const LandingPage = () => {
 
   const handleGitHubLogin = () => {
     // Redirect to /home after successful login
-    signIn("github", { callbackUrl: "/import" });
+    signIn("github", { callbackUrl: "/redirect" });
   };
 
   return (
