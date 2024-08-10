@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@nextui-org/select";
 import { Button } from "@/components/ui/button";
 
 interface Repository {
@@ -203,14 +204,16 @@ export default function ImportGitRepository() {
         <CardTitle>Import React/Vite Repository (Excluding Next.js)</CardTitle>
       </CardHeader>
       <CardContent>
-        <DropdownM
-        <Input
-          type="text"
-          placeholder="Search repositories..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="mb-4"
-        />
+        <div className="flex flex-row">
+          <Input
+            type="text"
+            placeholder="Search repositories..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4"
+          />
+        </div>
+
         <div>name: {session?.user?.username}</div>
         {isLoading ? (
           <div>Loading repositories...</div>
