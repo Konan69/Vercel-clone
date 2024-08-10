@@ -7,6 +7,20 @@ import { Kafka } from "kafkajs";
 
 dotenv.config();
 
+const requiredEnvVars = [
+  "PROJECT_ID",
+  "DEPLOYMENT_ID",
+  "KAFKA_URL",
+  "KAFKA_PW",
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
 const PROJECT_ID = process.env.PROJECT_ID;
 const ROOTDIR = process.env.ROOTDIR;
 const DEPLOYMENT_ID = process.env.DEPLOYMENT_ID;
@@ -76,11 +90,31 @@ async function init(ROOTDIR: string = "") {
     console.log("build complete");
     await publishLog(`Build complete`);
 
-    const distFolderPath = path.join(
-      __dirname,
-      `../uploads/${ROOTDIR}`,
-      "dist",
-    );
+    const possibleFolders = ["dist", "build"];
+    let distFolderPath = null;
+    // path.join(
+    //   __dirname,
+    //   `../uploads/${ROOTDIR}`,
+    //   "dist",
+    // );
+    for (const folder of possibleFolders) {
+      const possibleFolderPath = path.join(
+        __dirname,
+        `../uploads/${ROOTDIR}`,
+        folder,
+      );
+
+      if (fs.existsSync(possibleFolderPath)) {
+        distFolderPath = possibleFolderPath;
+        break;
+      }
+    }
+
+    if (!distFolderPath) {
+      console.error("Neither 'dist' nor 'build' folder found!");
+      publishLog("Neither 'dist' nor 'build' folder found!");
+      return;
+    }
     await publishLog("upload starting...");
     const distFolderContents = getAllFiles(distFolderPath);
     const uploadPromises = distFolderContents.map(async (file) => {
