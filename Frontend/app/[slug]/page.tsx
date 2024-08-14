@@ -8,24 +8,7 @@ import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import slugify from "slugify";
-
-interface Repository {
-  id: number;
-  name: string;
-  private: boolean;
-  updated_at: string;
-  default_branch: string;
-  clone_url: string;
-  owner: {
-    login: string;
-  };
-}
-
-interface GitHubContent {
-  type: string;
-  name: string;
-  path: string;
-}
+import { GitHubContent, Repository } from "@/lib/types";
 
 export default function ImportGitRepository() {
   const { data: session } = useSession();
@@ -196,9 +179,9 @@ export default function ImportGitRepository() {
     repo.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const importRepository = (url: string) => {
-    console.log(url);
-    // Implement your import logic here
+  const getImportUrl = (repo: Repository) => {
+    const encodedUrl = encodeURIComponent(repo.html_url);
+    return `/${session?.user?.username.toLowerCase()}-projects/deploy?repo=${encodedUrl}`;
   };
 
   return (
@@ -234,11 +217,7 @@ export default function ImportGitRepository() {
                   </span>
                 </div>
                 <Button className="bg-black text-stone-100 hover:bg-gray-800">
-                  <Link
-                    href={`/${session?.user?.username.toLowerCase()}-projects/deploy?url=${encodeURIComponent(repo.clone_url)}`}
-                  >
-                    Import
-                  </Link>
+                  <Link href={getImportUrl(repo)}>Import</Link>
                 </Button>
               </div>
             ))}
