@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import slugify from "slugify";
 import { GitHubContent, Repository } from "@/lib/types";
 
 export default function ImportGitRepository() {
