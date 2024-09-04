@@ -45,7 +45,7 @@ export default function Home() {
   const { data: session } = useSession();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const searchParams = useSearchParams();
-  const [selectedDirectory, setSelectedDirectory] = useState<string>("");
+  const [rootDir, setRootDir] = useState<string>("");
   const [repoURL, setURL] = useState<string>("");
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,7 +53,6 @@ export default function Home() {
   const [deployPreviewURL, setDeployPreviewURL] = useState<
     string | undefined
   >();
-  const [rootDir, setRootDir] = useState<string>("");
   const [directories, setDirectories] = useState<Directory[]>([]);
 
   const logContainerRef = useRef<HTMLElement>(null);
@@ -150,12 +149,12 @@ export default function Home() {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id={dir.path}
-                    checked={selectedDirectory === fullPath}
+                    checked={rootDir === fullPath}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedDirectory(fullPath);
+                        setRootDir(fullPath);
                       } else {
-                        setSelectedDirectory("");
+                        setRootDir("");
                       }
                     }}
                   />
@@ -215,7 +214,7 @@ export default function Home() {
                     <Button
                       color="primary"
                       onClick={() => {
-                        setRootDir(selectedDirectory);
+                        setRootDir(rootDir);
                         onClose();
                       }}
                     >

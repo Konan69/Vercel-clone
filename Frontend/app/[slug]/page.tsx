@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectSection, SelectItem } from "@nextui-org/select";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { GitHubContent, Repository } from "@/lib/types";

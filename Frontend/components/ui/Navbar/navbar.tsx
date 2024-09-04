@@ -6,12 +6,7 @@ const Navbar = () => {
       <Link href="/" className="text-xl font-bold">
         Vercel Clone
       </Link>
-      <div>
-        <Link href="/logs" className="mr-4">
-          Logs
-        </Link>
-        <Link href="/submission">Submission</Link>
-      </div>
+      <div>by Konan</div>
     </nav>
   );
 };

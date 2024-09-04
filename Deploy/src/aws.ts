@@ -1,8 +1,6 @@
-import { S3 } from "aws-sdk";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import mime from "mime-types";
 import { mimes } from "./util";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 dotenv.config();

@@ -26,7 +26,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { Github } from "lucide-react";
 import { Fira_Code } from "next/font/google";
 import axios from "axios";
 import { useSession } from "next-auth/react";
@@ -45,51 +44,22 @@ export default function Home() {
   const { data: session } = useSession();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const searchParams = useSearchParams();
-  const [selectedDirectory, setSelectedDirectory] = useState<string>("");
-  const [repoURL, setURL] = useState<string>("");
+  const logContainerRef = useRef<HTMLDivElement>(null);
+  const [deploymentId, setDeploymentId] = useState<string | undefined>();
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const deployed = useRef(false);
   const [projectId, setProjectId] = useState<string | undefined>();
   const [deployPreviewURL, setDeployPreviewURL] = useState<
     string | undefined
   >();
   const [rootDir, setRootDir] = useState<string>("");
   const [directories, setDirectories] = useState<Directory[]>([]);
+  const [isPolling, setIsPolling] = useState(false);
 
-  const logContainerRef = useRef<HTMLElement>(null);
-
-  const encodedRepoUrl = searchParams.get("repo");
-  const repoUrl = encodedRepoUrl ? decodeURIComponent(encodedRepoUrl) : "";
-  const repoPath = new URL(repoUrl).pathname.slice(1); // Remove leading '/'
-
-  const isValidURL: [boolean, string | null] = useMemo(() => {
-    if (!repoURL || repoURL.trim() === "") return [false, null];
-    const regex = new RegExp(
-      /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)(?:\/)?$/,
-    );
-    return [regex.test(repoURL), "Enter valid Github Repository URL"];
-  }, [repoURL]);
-
-  const handleClickDeploy = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await axios.post(`http://localhost:9000/project`, {
-        gitURL: repoURL,
-        slug: projectId,
-      });
-
-      if (data && data.data) {
-        const { projectSlug, url } = data.data;
-        setProjectId(projectSlug);
-        setDeployPreviewURL(url);
-        console.log(`Subscribing to logs:${projectSlug}`);
-      }
-    } catch (error) {
-      console.error("Deployment error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, repoURL]);
+  const gitURL = searchParams.get("repo");
+  const repoPath = new URL(gitURL!).pathname.slice(1); // Remove leading '/'
+  const name = repoPath.split("/")[1];
 
   const fetchDirectories = useCallback(
     async (path: string): Promise<Directory[]> => {
@@ -137,6 +107,12 @@ export default function Home() {
     }
   }, [fetchDirectories, repoPath]);
 
+  useEffect(() => {
+    if (deployed.current && deployPreviewURL) {
+      setDeployPreviewURL(deployPreviewURL);
+    }
+  }, [deployed.current, deployPreviewURL]);
+
   const renderDirectories = (dirs: Directory[], currentPath: string = "") => {
     return (
       <Accordion type="multiple" className="w-full">
@@ -150,12 +126,13 @@ export default function Home() {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id={dir.path}
-                    checked={selectedDirectory === fullPath}
+                    checked={rootDir === fullPath}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedDirectory(fullPath);
+                        setRootDir(fullPath);
+                        console.log(fullPath);
                       } else {
-                        setSelectedDirectory("");
+                        setRootDir("");
                       }
                     }}
                   />
@@ -175,6 +152,85 @@ export default function Home() {
       </Accordion>
     );
   };
+
+  const pollLogs = async (deploymentId: string) => {
+    setIsPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await axios.get(
+          `http://localhost:9000/logs/${deploymentId}`,
+        );
+        const newLogs = data.logs;
+
+        if (newLogs.length > 0) {
+          setLogs((prevLogs) => {
+            const existingLogs = new Set(prevLogs); // Using Set to avoid duplicates
+            const filteredLogs = newLogs
+              .map((log: any) => log.log)
+              .filter((log: string) => !existingLogs.has(log));
+            return [...prevLogs, ...filteredLogs];
+          });
+          logContainerRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+        // Check if deployment is complete ( message in the logs to indicate this)
+        const deploymentComplete = newLogs.some((logs: any) =>
+          logs.log.includes("all files uploaded"),
+        );
+        if (deploymentComplete) {
+          clearInterval(interval);
+          setIsPolling(false);
+          deployed.current = true;
+        }
+      } catch (error) {
+        console.error("Error polling logs:", error);
+        clearInterval(interval);
+        setIsPolling(false);
+      }
+    }, 3500); // Poll every 5 seconds
+  };
+
+  const handleClickDeploy = useCallback(async () => {
+    setLoading(true);
+    try {
+      // First API call: /projects
+      const projectResponse = await axios.post(
+        `http://localhost:9000/projects`,
+        {
+          gitURL,
+          name,
+        },
+      );
+
+      if (projectResponse.data && projectResponse.data.data) {
+        const { project } = projectResponse.data.data;
+        setDeployPreviewURL(project.subDomain + ".localhost:8000");
+        setProjectId(project.id);
+
+        // Second API call: /deploy using the response from /projects
+        const { data: response } = await axios.post(
+          `http://localhost:9000/deploy`,
+          {
+            projectId: project.id,
+            rootDir,
+          },
+        );
+
+        if (response && response.data) {
+          const { deploymentId } = response.data.data;
+          console.log("deployResponse", response.data.data);
+          setDeploymentId(deploymentId);
+
+          // Start polling logs
+          pollLogs(deploymentId);
+          console.log("deploymentId", deploymentId);
+        }
+      }
+    } catch (error) {
+      console.error("Deployment error:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [gitURL, name, rootDir, deploymentId]);
 
   return (
     <main className="flex flex-col justify-center items-center h-[100vh]">
@@ -209,13 +265,17 @@ export default function Home() {
                     </div>
                   </ModalBody>
                   <ModalFooter>
-                    <Button color="danger" onClick={onClose}>
+                    <Button
+                      color="danger"
+                      onClick={() => {
+                        onClose;
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button
                       color="primary"
                       onClick={() => {
-                        setRootDir(selectedDirectory);
                         onClose();
                       }}
                     >
@@ -227,58 +287,45 @@ export default function Home() {
             </ModalContent>
           </Modal>
         </div>
-        <CardContent>
-          <p className="text-gray-400">Enter the repository URL to deploy </p>
+        <CardContent className="pt-0">
+          <Button
+            className="mt-4 w-full"
+            onClick={handleClickDeploy}
+            disabled={loading}
+          >
+            Deploy
+          </Button>
         </CardContent>
       </Card>
-      <div className="w-[600px]">
-        {session?.user?.name}
-        <span className="flex justify-start items-center gap-2">
-          <Github className="text-5xl" />
-          <Input
-            disabled={loading}
-            value={repoURL}
-            onChange={(e) => setURL(e.target.value)}
-            type="url"
-            placeholder="Github URL"
-          />
-        </span>
-        <Button
-          onClick={handleClickDeploy}
-          disabled={!isValidURL[0] || loading}
-          className="w-full mt-3"
+      <Card className="flex flex-col gap-3 min-w-[600px] mt-6 h-[300px]">
+        <CardHeader>
+          <CardTitle>Logs</CardTitle>
+        </CardHeader>
+        <CardContent
+          className={`h-[240px] overflow-auto ${firaCode.className}`}
         >
-          {loading ? "In Progress" : "Deploy"}
-        </Button>
-        {deployPreviewURL && (
-          <div className="mt-2 bg-slate-900 py-4 px-2 rounded-lg">
-            <p>
-              Preview URL{" "}
-              <a
-                target="_blank"
-                className="text-sky-400 bg-sky-950 px-3 py-2 rounded-lg"
-                href={deployPreviewURL}
-              >
-                {deployPreviewURL}
-              </a>
-            </p>
+          {logs.map((log, index) => (
+            <div key={index}>{log}</div>
+          ))}
+          <div ref={logContainerRef} />
+        </CardContent>
+        {isPolling && (
+          <div className="flex flex-row items-center gap-2">
+            <span className="text-gray-400">Deployment Status:</span>
+            <span className="text-gray-400">Deploying...</span>
           </div>
         )}
-        {logs.length > 0 && (
-          <div
-            className={`${firaCode.className} text-sm text-green-500 logs-container mt-5 border-green-500 border-2 rounded-lg p-4 h-[300px] overflow-y-auto`}
-          >
-            <pre className="flex flex-col gap-1">
-              {logs.map((log, i) => (
-                <code
-                  ref={logs.length - 1 === i ? logContainerRef : undefined}
-                  key={i}
-                >{`> ${log}`}</code>
-              ))}
-            </pre>
+        {deployed.current && deployPreviewURL && (
+          <div className="flex flex-row items-center gap-2">
+            <span className="text-gray-400">
+              Deployed. View at Preview URL:
+            </span>
+            <a href={deployPreviewURL} target="_blank" rel="noreferrer">
+              {deployPreviewURL}
+            </a>
           </div>
         )}
-      </div>
+      </Card>
     </main>
   );
 }

@@ -19,17 +19,19 @@ const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY!;
 const PASSWORD = process.env.KAFKA_PW;
 const BROKER = process.env.KAFKA_URL;
 const CLICKHOUSE_PW = process.env.CLICKHOUSE_PW;
+const CLUSTER = process.env.CLUSTER;
+const TASK = process.env.TASK;
 // CONFIGS
 const ecsClient = new ECSClient({
   region,
   credentials: {
-    accessKeyId: accessKeyId,
-    secretAccessKey: secretAccessKey,
+    accessKeyId,
+    secretAccessKey,
   },
 });
 const config = {
-  CLUSTER: "arn:aws:ecs:eu-north-1:805866672805:cluster/builder-cluster",
-  TASK: "arn:aws:ecs:eu-north-1:805866672805:task-definition/builder-task:3",
+  CLUSTER,
+  TASK,
 };
 dotenv.config({ path: path.resolve("../.env") });
 
@@ -55,15 +57,6 @@ const kafka = new Kafka({
   },
 });
 
-console.log({
-  region,
-  accessKeyId,
-  secretAccessKey,
-  PASSWORD,
-  CLICKHOUSE_PW,
-  BROKER,
-  clickhouse_host,
-});
 const consumer = kafka.consumer({ groupId: "api-server-logs-consumer" });
 
 const app = express();
@@ -82,7 +75,6 @@ const initkafkaConsumer = async () => {
       resolveOffset,
     }) => {
       const messages = batch.messages;
-      console.log(`Received ${messages.length} messages`);
       for (const message of messages) {
         if (!message.value) continue;
         const stringMessage = message.value.toString()!;
@@ -115,7 +107,7 @@ const initkafkaConsumer = async () => {
           });
           await heartbeat();
         } catch (error) {
-          console.log(error);
+          console.error(error);
         }
       }
     },
@@ -124,37 +116,46 @@ const initkafkaConsumer = async () => {
 
 // ROUTES
 app.get("/logs/:id", async (req, res) => {
-  const id = req.params.id;
-  const logs = await client.query({
-    query: `SELECT event_id, deployment_id, log, timestamp FROM log_events WHERE deployment_id ={deployment_id:String}`,
-    query_params: {
-      deployment_id: id,
-    },
-    format: "JSONEachRow",
-  });
-  const rawLogs = await logs.json();
-
-  return res.status(200).json({ logs: rawLogs });
+  try {
+    const id = req.params.id;
+    const logs = await client.query({
+      query: `SELECT event_id, deployment_id, log, timestamp FROM log_events WHERE deployment_id ={deployment_id:String}`,
+      query_params: {
+        deployment_id: id,
+      },
+      format: "JSONEachRow",
+    });
+    const rawLogs = await logs.json();
+    return res.status(200).json({ logs: rawLogs });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 app.post("/projects", async (req, res) => {
-  const schema = z.object({
-    name: z.string(),
-    gitURL: z.string(),
-  });
-  const safeBody = schema.safeParse(req.body);
-  if (safeBody.error) return res.status(400).send({ error: safeBody.error });
+  try {
+    const schema = z.object({
+      name: z.string(),
+      gitURL: z.string(),
+    });
+    const safeBody = schema.safeParse(req.body);
+    if (safeBody.error) return res.status(400).send({ error: safeBody.error });
 
-  const { name, gitURL } = safeBody.data;
+    const { name, gitURL } = safeBody.data;
 
-  const project = await prisma.project.create({
-    data: {
-      name,
-      gitURL,
-      subDomain: generateSlug(),
-    },
-  });
-  res.status(201).send({ status: "success", data: { project } });
+    const project = await prisma.project.create({
+      data: {
+        name,
+        gitURL,
+        subDomain: generateSlug(),
+      },
+    });
+    res.status(201).send({ status: "success", data: { project } });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 app.post("/deploy", async (req, res) => {
@@ -168,66 +169,71 @@ app.post("/deploy", async (req, res) => {
   if (!project) return res.status(404).send({ error: "Project not found" });
 
   // create a deployment status
-  const deployment = await prisma.deployment.create({
-    data: {
-      projectId,
-      status: "QUEUED",
-    },
-  });
+  try {
+    const deployment = await prisma.deployment.create({
+      data: {
+        projectId,
+        status: "QUEUED",
+      },
+    });
+    const command = new RunTaskCommand({
+      cluster: config.CLUSTER,
+      taskDefinition: config.TASK,
+      launchType: "FARGATE",
+      count: 1,
+      networkConfiguration: {
+        awsvpcConfiguration: {
+          assignPublicIp: "ENABLED",
+          subnets: [
+            "subnet-0ac9880008a14808e",
+            "subnet-00d5c3ade8f1889c2",
+            "subnet-05d699f79fb5e6aa8",
+          ],
+          securityGroups: ["sg-0f3c0982ae018bc42"],
+        },
+      },
+      overrides: {
+        containerOverrides: [
+          {
+            name: "builder-image",
+            environment: [
+              {
+                name: "GIT_REPO_URL",
+                value: project.gitURL,
+              },
+              {
+                name: "PROJECT_ID",
+                value: project.id,
+              },
+              {
+                name: "DEPLOYMENT_ID",
+                value: deployment.id,
+              },
+              {
+                name: "PROJECT_ID",
+                value: projectId,
+              },
+              {
+                name: "ROOTDIR",
+                value: rootDir,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    await ecsClient.send(command);
+
+    return res.json({
+      status: deployment.status,
+      data: { project, data: { deploymentId: deployment.id } },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 
   // Spin the container
-  const command = new RunTaskCommand({
-    cluster: config.CLUSTER,
-    taskDefinition: config.TASK,
-    launchType: "FARGATE",
-    count: 1,
-    networkConfiguration: {
-      awsvpcConfiguration: {
-        assignPublicIp: "ENABLED",
-        subnets: [
-          "subnet-0ac9880008a14808e",
-          "subnet-00d5c3ade8f1889c2",
-          "subnet-05d699f79fb5e6aa8",
-        ],
-        securityGroups: ["sg-0f3c0982ae018bc42"],
-      },
-    },
-    overrides: {
-      containerOverrides: [
-        {
-          name: "builder-image",
-          environment: [
-            {
-              name: "GIT_REPO_URL",
-              value: project.gitURL,
-            },
-            {
-              name: "PROJECT_ID",
-              value: project.id,
-            },
-            {
-              name: "DEPLOYMENT_ID",
-              value: deployment.id,
-            },
-            {
-              name: "PROJECT_ID",
-              value: projectId,
-            },
-            {
-              name: "ROOTDIR",
-              value: rootDir,
-            },
-          ],
-        },
-      ],
-    },
-  });
-  await ecsClient.send(command);
-
-  return res.json({
-    status: deployment.status,
-    data: { project, data: { deploymentId: deployment.id } },
-  });
 });
 
 initkafkaConsumer();
